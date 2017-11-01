@@ -58,6 +58,48 @@ describe('Dependency Injection Features', () => {
       .to.equal(instance.recentMessage.recentMessageOptions);
   });
 
+  it('should support spread flag in FactoryProvider', () => {
+    @Module({
+      deps: ['Config']
+    })
+    class Test {
+      constructor({ value, config }) {
+        this.value = value;
+        this.config = config;
+      }
+    }
+
+    @ModuleFactory({
+      providers: [
+        { provide: 'BasicConfig', useValue: { value: 'value' }, spread: true },
+        { provide: 'DefaultConfig', useFactory: ({ value }) => ({ value }), deps: ['BasicConfig'] }
+      ]
+    })
+    class BaseClass {}
+
+    @ModuleFactory({
+      providers: [
+        { provide: 'Test', useClass: Test },
+        { provide: 'Config',
+          useFactory: ({ defaultConfig }) => ({ value: defaultConfig.value, config: 'config' }),
+          deps: ['DefaultConfig'],
+          spread: true
+        }
+      ]
+    })
+    class ChildClass extends BaseClass {
+      constructor({ test }) {
+        super();
+        this.test = test;
+      }
+    }
+
+    const child = Injector.bootstrap(ChildClass);
+    expect(child.test).to.be.instanceOf(Test);
+    expect(child.test.value).to.equal('value');
+    expect(child.test.config).to.equal('config');
+  });
+
   it('should inject modules', () => {
     @Module()
     class MessageStore {}

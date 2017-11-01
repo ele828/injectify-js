@@ -126,7 +126,7 @@ describe('Injector', () => {
         const injector = new Injector();
         const provider = new ValueProvider('Config', config);
         injector.resolveModuleProvider(provider);
-        expect(injector.container.get('Config').instance).to.equal(config);
+        expect(injector.get('Config')).to.equal(config);
       });
 
       it('should support object type', () => {
@@ -135,7 +135,7 @@ describe('Injector', () => {
         const injector = new Injector();
         const provider = new ValueProvider('Value', val);
         injector.resolveModuleProvider(provider);
-        expect(injector.container.get('Value').instance).to.equal(val);
+        expect(injector.get('Value')).to.equal(val);
       });
 
       it('should support number type', () => {
@@ -143,7 +143,7 @@ describe('Injector', () => {
         const injector = new Injector();
         const provider = new ValueProvider('Value', val);
         injector.resolveModuleProvider(provider);
-        expect(injector.container.get('Value').instance).to.equal(val);
+        expect(injector.get('Value')).to.equal(val);
       });
 
       it('should support string type', () => {
@@ -151,7 +151,7 @@ describe('Injector', () => {
         const injector = new Injector();
         const provider = new ValueProvider('Value', val);
         injector.resolveModuleProvider(provider);
-        expect(injector.container.get('Value').instance).to.equal(val);
+        expect(injector.get('Value')).to.equal(val);
       });
 
       it('should support boolean type', () => {
@@ -159,7 +159,7 @@ describe('Injector', () => {
         const injector = new Injector();
         const provider = new ValueProvider('Value', val);
         injector.resolveModuleProvider(provider);
-        expect(injector.container.get('Value').instance).to.equal(val);
+        expect(injector.get('Value')).to.equal(val);
       });
 
       it('should support array type', () => {
@@ -167,7 +167,7 @@ describe('Injector', () => {
         const injector = new Injector();
         const provider = new ValueProvider('Value', val);
         injector.resolveModuleProvider(provider);
-        expect(injector.container.get('Value').instance).to.equal(val);
+        expect(injector.get('Value')).to.equal(val);
       });
 
       it('should recognize spread flag', () => {
