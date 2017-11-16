@@ -47,24 +47,6 @@ describe('Injector', () => {
         expect(injector.get('Exist')).to.be.an.instanceof(Provider);
       });
 
-      it('shold throw when use existing parent ModuleFactory provider', () => {
-        class Provider {}
-        Registry.registerModule(Provider);
-        const parentInjector = new Injector();
-        const injector = new Injector();
-        injector.setParent(parentInjector);
-        parentInjector.universalProviders.set(
-          'Provider',
-          new ClassProvider('Provider', Provider)
-        );
-        injector.universalProviders.set(
-          'Exist',
-          new ExistingProvider('Exist', 'Provider')
-        );
-        const func = () => injector.resolveModuleProvider(injector.universalProviders.get('Exist'));
-        expect(func).to.throw();
-      });
-
       it('should support ValueProvider', () => {
         const val = { val: 'val' };
         const injector = new Injector();

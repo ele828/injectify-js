@@ -169,6 +169,7 @@ describe('Dependency Injection Features', () => {
     }
     const instance = Injector.bootstrap(TestRootModule);
     expect(instance.existingOptions).deep.equal(instance.options);
+    console.log(instance.options);
   });
 
   it('dependency name should be consistent with provider token', () => {
@@ -519,7 +520,8 @@ describe('Dependency Injection Features', () => {
     })
     class TestModule {
       constructor({
-        utils
+        utils,
+        value,
       }) {
         this.utils = utils;
       }
@@ -533,15 +535,18 @@ describe('Dependency Injection Features', () => {
     }
 
     @ModuleFactory({
-      providers: [{
-        provide: 'Strings', useClass: Strings
-      }]
+      providers: [
+        { provide: 'Strings', useClass: Strings },
+        { provide: 'TestExisting', useExisting: 'Value' }
+      ]
     })
     class Util {
       constructor({
-        strings
+        strings,
+        testExisting,
       }) {
         this.strings = strings;
+        this.testExisting = testExisting;
       }
     }
 
@@ -549,7 +554,8 @@ describe('Dependency Injection Features', () => {
       providers: [
         // Utils should be reverse resolved by modules
         { provide: 'TestModule', useClass: TestModule },
-        { provide: 'Utils', useClass: Util, private: true }
+        { provide: 'Utils', useClass: Util, private: true },
+        { provide: 'Value', useValue: 'Test' },
       ]
     })
     class Root {
@@ -562,6 +568,7 @@ describe('Dependency Injection Features', () => {
 
     const root = Injector.bootstrap(Root);
     expect(root.testModule.utils.strings).to.be.an('object');
+    console.log(root.testModule.utils.testExisting);
   });
 
   it('should make sure module will not be affected by decorator', () => {

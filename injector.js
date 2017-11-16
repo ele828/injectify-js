@@ -45,16 +45,13 @@ export class Injector {
       if (pending.has(provider)) {
         throw CircularDependencyError(pending, provider.token);
       }
-      if (this.universalProviders.has(provider.useExisting)) {
-        pending.add(provider);
-        this.resolveModuleProvider(this.universalProviders.get(provider.useExisting));
-        pending.delete(provider);
-      }
-      if (container.localHas(provider.useExisting)) {
-        container.set(provider.token, container.localGet(provider.useExisting));
-      } else {
+      pending.add(provider);
+      this.resolveDependency(provider.useExisting);
+      if (!container.has(provider.useExisting)) {
         throw DIError(`ExistingProvider [${provider.useExisting}] is not found`);
       }
+      container.set(provider.token, container.get(provider.useExisting));
+      pending.delete(provider);
       return;
     }
 
@@ -98,8 +95,25 @@ export class Injector {
         this.resolveModuleFactoryProvider(provider);
       } else {
         throw DIError(
-          `Provider [${provider.token}] can not be resolved, module is not found`
+          `Provider [${provider.token}] can not be resolved`
         );
+      }
+    }
+  }
+
+  /**
+   * A helper to resolve certain dependency.
+   * @param {String} dep
+   */
+  resolveDependency(dep) {
+    if (!this.container.has(dep)) {
+      if (this.universalProviders.has(dep)) {
+        const dependentModuleProvider = this.universalProviders.get(dep);
+        this.resolveModuleProvider(dependentModuleProvider);
+      } else if (this.parentInjector) {
+        // Dependent module provider can not be found locally,
+        // try to resolve provider in ancestor injectors.
+        this.parentInjector.resolveModuleProviderForChildren(dep);
       }
     }
   }
@@ -116,16 +130,9 @@ export class Injector {
       if (pending.has(dep)) {
         throw CircularDependencyError(pending, dep);
       }
-      if (!this.container.has(dep)) {
-        if (this.universalProviders.has(dep)) {
-          const dependentModuleProvider = this.universalProviders.get(dep);
-          this.resolveModuleProvider(dependentModuleProvider);
-        } else if (this.parentInjector) {
-          // Dependent module provider can not be found locally,
-          // try to resolve provider in ancestor injectors.
-          this.parentInjector.resolveModuleProviderForChildren(dep);
-        }
-      }
+      // Resolve certain dependency
+      this.resolveDependency(dep);
+
       // If the dependency is optional but Provider is found, then try to inject the dependency.
       // Otherwise, if provider is not found, then just ignore.
       // If the dependency is not optional and Provider is found, then try to inject the dependency.
