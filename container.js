@@ -15,7 +15,7 @@ export default class Container {
   get(token) {
     if (this._map.has(token)) return this._map.get(token);
     if (this.parent !== null) return this.parent.get(token);
-    throw DIError(`Cannot find provider [${token}] in Container`);
+    return null;
   }
 
   set(token, metadata) {

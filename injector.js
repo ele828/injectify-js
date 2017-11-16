@@ -1,7 +1,7 @@
 import { combineReducers } from 'redux';
 import Container from './container';
 import Registry from './registry/registry';
-import { ValueProvider, ClassProvider, ExistingProvider, FactoryProvider } from './provider';
+import { Provider, ValueProvider, ClassProvider, ExistingProvider, FactoryProvider } from './provider';
 import { assert, camelize } from './utils/utils';
 import { DIError, CircularDependencyError } from './utils/error';
 import { isObject, isValueProvider, isStaticClassProvider, isExistingProvider, isFactoryProvider } from './utils/is_type';
@@ -21,10 +21,10 @@ export class Injector {
   constructor() {
     this.targetClass = null;
     this.parentInjector = null;
-    this.moduleRegistry = Registry.moduleRegistry;
-    this.providerRegistry = Registry.providerRegistry;
     this.container = new Container();
     this.universalProviders = new Map();
+    this.moduleRegistry = Registry.moduleRegistry;
+    this.providerRegistry = Registry.providerRegistry;
   }
 
   /**
@@ -35,10 +35,18 @@ export class Injector {
    */
   resolveModuleProvider(provider, pending = Injector.pending) {
     const container = this.container;
-    assert(provider, 'Expected valid provider', provider);
+    assert((provider instanceof Provider), 'Expected a valid provider', provider);
 
     // Provider has already been resolved
-    if (container.localHas(provider.token)) return;
+    // Or if provider exists in ancestor injectors,
+    // then it should create a reference to that provider locally.
+    const targetInstance = container.get(provider.token);
+    if (targetInstance !== null) {
+      if (!container.localHas(provider.token)) {
+        container.set(provider.token, targetInstance);
+      }
+      return targetInstance;
+    }
 
     // useExisting provider needs to resolve existing providers instead of itself
     if (provider instanceof ExistingProvider) {
@@ -46,29 +54,20 @@ export class Injector {
         throw CircularDependencyError(pending, provider.token);
       }
       pending.add(provider);
-      this.resolveDependency(provider.useExisting);
-      if (!container.has(provider.useExisting)) {
+      const instance = this.resolveDependency(provider.useExisting);
+      if (!instance) {
         throw DIError(`ExistingProvider [${provider.useExisting}] is not found`);
       }
-      container.set(provider.token, container.get(provider.useExisting));
+      container.set(provider.token, instance);
       pending.delete(provider);
-      return;
+      return instance;
     }
 
-    // If provider exists in ancestor injectors,
-    // then it should create a reference to that provider locally.
-    if (container.has(provider.token)) {
-      container.set(provider.token, container.get(provider.token));
-      return;
-    }
-    if (!this.universalProviders.has(provider.token)) {
-      if (this.parentInjector) {
-        this.parentInjector.resolveModuleProvider(provider);
-      }
-    }
     if (provider instanceof ValueProvider) {
       container.set(provider.token, provider);
-    } else if (provider instanceof FactoryProvider) {
+      return provider;
+    }
+    if (provider instanceof FactoryProvider) {
       pending.add(provider.token);
       // eslint-disable-next-line
       const deps = provider.deps.map(dep => isObject(dep) ? dep : { dep, optional: false });
@@ -77,7 +76,9 @@ export class Injector {
       provider.setInstance(factoryProvider);
       container.set(provider.token, provider);
       pending.delete(provider.token);
-    } else if (provider instanceof ClassProvider) {
+      return provider;
+    }
+    if (provider instanceof ClassProvider) {
       if (this.moduleRegistry.has(provider.klass)) {
         const deps = Registry.resolveInheritedDependencies(provider.klass) || [];
         const Klass = provider.klass;
@@ -87,18 +88,19 @@ export class Injector {
         provider.setInstance(instance);
         container.set(provider.token, provider);
         pending.delete(provider.token);
+        return provider;
       } else if (
         provider instanceof ClassProvider &&
         this.providerRegistry.has(provider.klass)
       ) {
         // Depends on moduleFactory provider
-        this.resolveModuleFactoryProvider(provider);
-      } else {
-        throw DIError(
-          `Provider [${provider.token}] can not be resolved`
-        );
+        return this.resolveModuleFactoryProvider(provider);
       }
+      throw DIError(
+        `Provider [${provider.token}] can not be resolved`
+      );
     }
+    return null;
   }
 
   /**
@@ -106,16 +108,17 @@ export class Injector {
    * @param {String} dep
    */
   resolveDependency(dep) {
-    if (!this.container.has(dep)) {
-      if (this.universalProviders.has(dep)) {
-        const dependentModuleProvider = this.universalProviders.get(dep);
-        this.resolveModuleProvider(dependentModuleProvider);
-      } else if (this.parentInjector) {
-        // Dependent module provider can not be found locally,
-        // try to resolve provider in ancestor injectors.
-        this.parentInjector.resolveModuleProviderForChildren(dep);
-      }
+    const instance = this.container.get(dep);
+    if (instance) return instance;
+    if (this.universalProviders.has(dep)) {
+      const dependentModuleProvider = this.universalProviders.get(dep);
+      return this.resolveModuleProvider(dependentModuleProvider);
+    } else if (this.parentInjector) {
+      // Dependent module provider can not be found locally,
+      // try to resolve provider in ancestor injectors.
+      return this.parentInjector.resolveModuleProviderForChildren(dep);
     }
+    return null;
   }
 
   /**
@@ -131,14 +134,13 @@ export class Injector {
         throw CircularDependencyError(pending, dep);
       }
       // Resolve certain dependency
-      this.resolveDependency(dep);
+      const dependentProvider = this.resolveDependency(dep);
 
       // If the dependency is optional but Provider is found, then try to inject the dependency.
       // Otherwise, if provider is not found, then just ignore.
       // If the dependency is not optional and Provider is found, then try to inject the dependency.
       // Otherwise, if the Provider is not found, then an Error should be thrown.
-      if (!optional || this.container.has(dep)) {
-        const dependentProvider = this.container.get(dep);
+      if (!optional || dependentProvider) {
         const dependentInstance = dependentProvider.getInstance();
 
         // Value dependency and use spread, in this case, value object needs to be spreaded
@@ -172,10 +174,11 @@ export class Injector {
    */
   resolveModuleProviderForChildren(providerToken) {
     if (this.universalProviders.has(providerToken)) {
-      this.resolveModuleProvider(this.universalProviders.get(providerToken));
+      return this.resolveModuleProvider(this.universalProviders.get(providerToken));
     } else if (this.parentInjector) {
-      this.parentInjector.resolveModuleProviderForChildren(providerToken);
+      return this.parentInjector.resolveModuleProviderForChildren(providerToken);
     }
+    return null;
   }
 
   /**
@@ -183,20 +186,21 @@ export class Injector {
    * @param {Provider} providerInstance
    */
   resolveModuleFactoryProvider(providerInstance) {
-    if (!this.container.has(providerInstance.token)) {
-      Injector.pending.add(providerInstance.token);
-      // Prevent referencing to itself
-      if (providerInstance.klass === this.targetClass) {
-        throw CircularDependencyError(Injector.pending, this.targetClass.name);
-      }
-      const instance = Injector.bootstrap(providerInstance.klass, this);
-      providerInstance.setInstance(instance);
-      this.container.set(
-        providerInstance.token,
-        providerInstance
-      );
-      Injector.pending.delete(providerInstance.token);
+    const _instance = this.container.get(providerInstance.token);
+    if (_instance) return _instance;
+    Injector.pending.add(providerInstance.token);
+    // Prevent referencing to itself
+    if (providerInstance.klass === this.targetClass) {
+      throw CircularDependencyError(Injector.pending, this.targetClass.name);
     }
+    const instance = Injector.bootstrap(providerInstance.klass, this);
+    providerInstance.setInstance(instance);
+    this.container.set(
+      providerInstance.token,
+      providerInstance
+    );
+    Injector.pending.delete(providerInstance.token);
+    return providerInstance;
   }
 
   /**
@@ -216,10 +220,6 @@ export class Injector {
    */
   _bootstrap(RootClass) {
     this.targetClass = RootClass;
-    // TODO: how to cache root class?
-    if (this.container.localHas(RootClass.name)) {
-      return this.container.localGet(RootClass.name).getInstance();
-    }
 
     // Implement inheritance for ModuleFactory
     const providersMetadata = Registry.resolveInheritedModuleFactory(RootClass);

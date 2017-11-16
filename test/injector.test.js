@@ -91,13 +91,11 @@ describe('Injector', () => {
           'Provider',
           new ClassProvider('Provider', Provider)
         );
-        injector.resolveModuleProvider(parentInjector.universalProviders.get('Provider'));
-        expect(injector.container.localHas('Provider')).to.be.true();
+        const retval = injector.resolveDependency('Provider');
+        expect(retval).to.not.be.null();
         expect(parentInjector.container.localHas('Provider')).to.be.true();
-        expect(
+        expect(retval).to.equal(
           parentInjector.container.localGet('Provider')
-        ).to.equal(
-          injector.container.localGet('Provider')
         );
       });
     });
@@ -391,17 +389,6 @@ describe('Injector', () => {
   });
 
   describe('#_bootstrap', () => {
-    it('should return provider is it has already been resolved', () => {
-      class RootClass {}
-      const instance = new RootClass();
-      const provider = new ClassProvider(RootClass.name, RootClass);
-      provider.setInstance(instance);
-      const injector = new Injector();
-      injector.container.set(RootClass.name, provider);
-      const retval = injector._bootstrap(RootClass);
-      expect(retval).to.equal(instance);
-    });
-
     describe('provider categorize', () => {
       it('should recognize Value Provider', () => {
         class Test {}
