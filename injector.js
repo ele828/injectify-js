@@ -80,8 +80,8 @@ export class Injector {
     }
     if (provider instanceof ClassProvider) {
       if (this.moduleRegistry.has(provider.klass)) {
-        const deps = Registry.resolveInheritedDependencies(provider.klass) || [];
         const Klass = provider.klass;
+        const deps = Registry.resolveInheritedDependencies(Klass) || [];
         pending.add(provider.token);
         const dependencies = this.resolveDependencies(deps, pending);
         const instance = new Klass(dependencies);
@@ -97,7 +97,7 @@ export class Injector {
         return this.resolveModuleFactoryProvider(provider);
       }
       throw DIError(
-        `Provider [${provider.token}] can not be resolved`
+        `Provider [${provider.token}] cannot be resolved`
       );
     }
     return null;
@@ -114,7 +114,7 @@ export class Injector {
       const dependentModuleProvider = this.universalProviders.get(dep);
       return this.resolveModuleProvider(dependentModuleProvider);
     } else if (this.parentInjector) {
-      // Dependent module provider can not be found locally,
+      // Dependent module provider cannot be found locally,
       // try to resolve provider in ancestor injectors.
       return this.parentInjector.resolveModuleProviderForChildren(dep);
     }
@@ -123,13 +123,13 @@ export class Injector {
 
   /**
    * Resolve module dependencies recursively.
-   * If module is not optional and can not be resolved, then DIError will be thrown
+   * If module is not optional and cannot be resolved, then DIError will be thrown
    * @param {Array} deps - module dependencies
    * @param {Set} pending - process record
    */
   resolveDependencies(deps, pending) {
     const dependencies = {};
-    for (const { dep, optional } of deps) {
+    for (const { dep, spread, optional } of deps) {
       if (pending.has(dep)) {
         throw CircularDependencyError(pending, dep);
       }
@@ -143,23 +143,18 @@ export class Injector {
       if (!optional || dependentProvider) {
         const dependentInstance = dependentProvider.getInstance();
 
-        // Value dependency and use spread, in this case, value object needs to be spreaded
-        if (dependentProvider instanceof ValueProvider) {
-          if (dependentProvider.spread) {
-            Object.assign(dependencies, dependentInstance.value);
+        // Value object needs to be spreaded
+        if (spread) {
+          if (isObject(dependentInstance)) {
+            Object.assign(dependencies, dependentInstance);
           } else {
-            dependencies[camelize(dep)] = dependentInstance.value;
+            throw DIError(`Provider [${dependentProvider.token}] cannot be spread`);
           }
-        } else if (
-          dependentProvider instanceof FactoryProvider &&
-          dependentProvider.spread
-        ) {
-          Object.assign(dependencies, dependentInstance);
         } else {
-          dependencies[camelize(dep)] = dependentProvider.getInstance();
+          dependencies[camelize(dep)] = dependentInstance;
         }
       } else if (!optional) {
-        throw DIError(`Dependency Module [${dep}] can not be resolved`);
+        throw DIError(`Dependency [${dep}] cannot be resolved`);
       }
     }
     // Injector instance will be injected into each module
@@ -231,7 +226,7 @@ export class Injector {
       if (isValueProvider(provider)) {
         universalProviders.set(
           provider.provide,
-          new ValueProvider(provider.provide, provider.useValue, provider.spread, provider.private)
+          new ValueProvider(provider.provide, provider.useValue, provider.private)
         );
       } else if (isStaticClassProvider(provider)) {
         universalProviders.set(
@@ -247,7 +242,7 @@ export class Injector {
         universalProviders.set(
           provider.provide,
           // eslint-disable-next-line
-          new FactoryProvider(provider.provide, provider.useFactory, provider.deps, provider.spread, provider.private)
+          new FactoryProvider(provider.provide, provider.useFactory, provider.deps, provider.private)
         );
       } else {
         throw DIError('Expected valid provider', provider);
@@ -289,6 +284,9 @@ export class Injector {
 
     // Register all module providers to root instance
     for (const name of Object.keys(moduleProviders)) {
+      if (!module) {
+        console.log(moduleProviders);
+      }
       const module = moduleProviders[name];
       if (rootClassInstance.addModule) {
         rootClassInstance.addModule(name, module);

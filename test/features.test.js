@@ -15,14 +15,14 @@ describe('Dependency Injection Features', () => {
     Injector.reset();
   });
 
-  it('should support spreadValues in ModuleFactory', () => {
+  it('should support spread flag', () => {
     @Module()
     class MessageStore {}
     @Module({
       deps: [
         'MessageStore',
         'ExistingOptions',
-        { dep: 'RecentMessageOptions', optional: true }
+        { dep: 'RecentMessageOptions', spread: true, optional: true }
       ]
     })
     class RecentMessage {
@@ -41,7 +41,7 @@ describe('Dependency Injection Features', () => {
       providers: [
         { provide: 'MessageStore', useClass: MessageStore },
         { provide: 'RecentMessage', useClass: RecentMessage },
-        { provide: 'RecentMessageOptions', useValue: { enabled: true }, spread: true },
+        { provide: 'RecentMessageOptions', useValue: { enabled: true } },
         { provide: 'ExistingOptions', useExisting: 'RecentMessageOptions' }
       ]
     })

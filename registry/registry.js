@@ -168,19 +168,32 @@ export default class Registry {
     // Deps preprocess
     for (const parent of parentDeps) {
       if (!isObject(parent)) {
-        merged.set(parent, { dep: parent, optional: false });
+        merged.set(parent, { dep: parent, spared: false, optional: false });
       } else {
-        merged.set(parent.dep, parent);
+        const formatedDep = {
+          dep: parent,
+          spread: parent.spread || false,
+          optional: parent.optional || false
+        };
+        merged.set(parent.dep, formatedDep);
       }
     }
 
     for (let base of baseDeps) {
       if (!isObject(base)) {
-        base = { dep: base, optional: false };
+        base = { dep: base, spread: false, optional: false };
+      } else {
+        base = {
+          dep: base.dep,
+          spread: base.spread || false,
+          optional: base.optional || false
+        };
       }
       if (merged.has(base.dep)) {
+        // Inherits dependency properties
         merged.set(base.dep, {
           dep: base.dep,
+          spread: base.spread && merged.get(base.dep).spread,
           optional: base.optional && merged.get(base.dep).optional
         });
       } else {
