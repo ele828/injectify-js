@@ -54,13 +54,14 @@ export class Injector {
         throw CircularDependencyError(pending, provider.token);
       }
       pending.add(provider);
-      const instance = this.resolveDependency(provider.useExisting);
-      if (!instance) {
+      const dependent = this.resolveDependency(provider.useExisting);
+      if (!dependent) {
         throw DIError(`ExistingProvider [${provider.useExisting}] is not found`);
       }
-      container.set(provider.token, instance);
+      provider.setInstance(dependent.getInstance());
+      container.set(provider.token, provider);
       pending.delete(provider);
-      return instance;
+      return provider;
     }
 
     if (provider instanceof ValueProvider) {
@@ -142,8 +143,6 @@ export class Injector {
       // Otherwise, if the Provider is not found, then an Error should be thrown.
       if (!optional || dependentProvider) {
         const dependentInstance = dependentProvider.getInstance();
-
-        // Value object needs to be spreaded
         if (spread) {
           if (isObject(dependentInstance)) {
             Object.assign(dependencies, dependentInstance);
@@ -269,11 +268,7 @@ export class Injector {
     for (const [token, moduleProvider] of container.entries()) {
       if (!moduleProvider.private) {
         const instance = moduleProvider.getInstance();
-        if (moduleProvider instanceof ValueProvider) {
-          moduleProviders[camelize(token)] = instance.value;
-        } else {
-          moduleProviders[camelize(token)] = instance;
-        }
+        moduleProviders[camelize(token)] = instance;
       }
     }
 
@@ -284,9 +279,6 @@ export class Injector {
 
     // Register all module providers to root instance
     for (const name of Object.keys(moduleProviders)) {
-      if (!module) {
-        console.log(moduleProviders);
-      }
       const module = moduleProviders[name];
       if (rootClassInstance.addModule) {
         rootClassInstance.addModule(name, module);
@@ -314,7 +306,7 @@ export class Injector {
       }
       if (module._proxyReducer) {
         Object.defineProperty(module, PROXY_STATE_FUNC_LITERAL, {
-          value: () => rootClassInstance.state[name]
+          value: () => rootClassInstance.proxyState[name]
         });
         Object.defineProperty(rootClassInstance, PROXY_REDUCER_LITERAL, {
           value: combineReducers({
@@ -334,11 +326,7 @@ export class Injector {
    */
   get(token) {
     const provider = this.container.get(token);
-    const instance = provider.getInstance();
-    if (provider instanceof ValueProvider) {
-      return instance.value;
-    }
-    return instance;
+    return provider.getInstance();
   }
 
   /**

@@ -21,7 +21,7 @@ describe('Dependency Injection Features', () => {
     @Module({
       deps: [
         'MessageStore',
-        'ExistingOptions',
+        { dep: 'ExistingOptions', spread: true },
         { dep: 'RecentMessageOptions', spread: true, optional: true }
       ]
     })
@@ -60,7 +60,7 @@ describe('Dependency Injection Features', () => {
 
   it('should support spread flag in FactoryProvider', () => {
     @Module({
-      deps: ['Config']
+      deps: [{ dep: 'Config', spread: true }]
     })
     class Test {
       constructor({ value, config }) {
@@ -71,8 +71,10 @@ describe('Dependency Injection Features', () => {
 
     @ModuleFactory({
       providers: [
-        { provide: 'BasicConfig', useValue: { value: 'value' }, spread: true },
-        { provide: 'DefaultConfig', useFactory: ({ value }) => ({ value }), deps: ['BasicConfig'] }
+        { provide: 'BasicConfig', useValue: { value: 'value' } },
+        { provide: 'DefaultConfig',
+          useFactory: ({ basicConfig }) => ({ ...basicConfig }),
+          deps: ['BasicConfig'] }
       ]
     })
     class BaseClass {}
@@ -83,7 +85,6 @@ describe('Dependency Injection Features', () => {
         { provide: 'Config',
           useFactory: ({ defaultConfig }) => ({ value: defaultConfig.value, config: 'config' }),
           deps: ['DefaultConfig'],
-          spread: true
         }
       ]
     })
@@ -153,7 +154,7 @@ describe('Dependency Injection Features', () => {
 
     @ModuleFactory({
       providers: [
-        { provide: 'Options', useValue: { key: 'key' }, spread: true, merge: true },
+        { provide: 'Options', useValue: { key: 'key' }, merge: true },
         { provide: 'ExistingOptions', useExisting: 'Options' }
       ]
     })
@@ -169,7 +170,6 @@ describe('Dependency Injection Features', () => {
     }
     const instance = Injector.bootstrap(TestRootModule);
     expect(instance.existingOptions).deep.equal(instance.options);
-    console.log(instance.options);
   });
 
   it('dependency name should be consistent with provider token', () => {
@@ -490,7 +490,7 @@ describe('Dependency Injection Features', () => {
     const testConfig = { test: 'test' };
 
     @Library({
-      deps: [{ dep: 'Config', optional: true }]
+      deps: [{ dep: 'Config' }]
     })
     class TestLibrary {
       constructor({ config }) {

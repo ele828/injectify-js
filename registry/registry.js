@@ -171,7 +171,7 @@ export default class Registry {
         merged.set(parent, { dep: parent, spared: false, optional: false });
       } else {
         const formatedDep = {
-          dep: parent,
+          dep: parent.dep,
           spread: parent.spread || false,
           optional: parent.optional || false
         };
