@@ -422,11 +422,13 @@ describe('Registry', () => {
       expect(deps).have.deep.members([
         {
           dep: 'A',
-          optional: false
+          optional: false,
+          spread: false
         },
         {
           dep: 'C',
-          optional: false
+          optional: false,
+          spread: false
         },
       ]);
     });
@@ -451,8 +453,8 @@ describe('Registry', () => {
 
       const deps = Registry.resolveInheritedDependencies(B);
       expect(deps).have.deep.members([
-        { dep: 'A', optional: false },
-        { dep: 'B', optional: false }
+        { dep: 'A', spread: false, optional: false },
+        { dep: 'B', spread: false, optional: false }
       ]);
     });
 
@@ -467,9 +469,9 @@ describe('Registry', () => {
 
       const deps = Registry.resolveInheritedDependencies(C);
       expect(deps).have.deep.members([
-        { dep: 'A', optional: false },
-        { dep: 'B', optional: false },
-        { dep: 'C', optional: false }
+        { dep: 'A', spread: false, optional: false },
+        { dep: 'B', spread: false, optional: false },
+        { dep: 'C', spread: false, optional: false }
       ]);
     });
 
@@ -486,8 +488,8 @@ describe('Registry', () => {
 
       const deps = Registry.resolveInheritedDependencies(D);
       expect(deps).have.deep.members([
-        { dep: 'A', optional: false },
-        { dep: 'C', optional: false },
+        { dep: 'A', spread: false, optional: false },
+        { dep: 'C', spread: false, optional: false },
       ]);
     });
 
@@ -496,13 +498,13 @@ describe('Registry', () => {
       class B extends A {}
       class C extends B {}
 
-      Registry.registerModule(A, { deps: [{ dep: 'A', optional: false }] });
+      Registry.registerModule(A, { deps: [{ dep: 'A', optional: false, spread: false }] });
       Registry.registerModule(B, null);
-      Registry.registerModule(C, { deps: [{ dep: 'A', optional: true }] });
+      Registry.registerModule(C, { deps: [{ dep: 'A', optional: true, spread: true }] });
 
       const deps = Registry.resolveInheritedDependencies(C);
       expect(deps).have.deep.members([
-        { dep: 'A', optional: false }
+        { dep: 'A', spread: false, optional: false }
       ]);
     });
 
@@ -516,14 +518,14 @@ describe('Registry', () => {
         ];
         let deps = Registry.mergeDependencies(baseDeps, parentDeps);
         expect(deps).have.deep.members([
-          { dep: 'A', optional: false }
+          { dep: 'A', spread: false, optional: false }
         ]);
 
         baseDeps = [{ dep: 'A', optional: true }];
         parentDeps = ['A'];
         deps = Registry.mergeDependencies(baseDeps, parentDeps);
         expect(deps).have.deep.members([
-          { dep: 'A', optional: false }
+          { dep: 'A', spread: false, optional: false }
         ]);
       });
 
@@ -536,14 +538,14 @@ describe('Registry', () => {
         ];
         let deps = Registry.mergeDependencies(baseDeps, parentDeps);
         expect(deps).have.deep.members([
-          { dep: 'A', optional: false }
+          { dep: 'A', spread: false, optional: false }
         ]);
 
         baseDeps = ['A'];
         parentDeps = [{ dep: 'A', optional: true }];
         deps = Registry.mergeDependencies(baseDeps, parentDeps);
         expect(deps).have.deep.members([
-          { dep: 'A', optional: false }
+          { dep: 'A', spread: false, optional: false }
         ]);
       });
 
@@ -556,14 +558,14 @@ describe('Registry', () => {
         ];
         let d = Registry.mergeDependencies(b, p);
         expect(d).have.deep.members([
-          { dep: 'A', optional: false }
+          { dep: 'A', spread: false, optional: false }
         ]);
 
         b = ['A'];
         p = ['A'];
         d = Registry.mergeDependencies(b, p);
         expect(d).have.deep.members([
-          { dep: 'A', optional: false }
+          { dep: 'A', spread: false, optional: false }
         ]);
       });
 
@@ -576,7 +578,7 @@ describe('Registry', () => {
         ];
         const d = Registry.mergeDependencies(b, p);
         expect(d).have.deep.members([
-          { dep: 'A', optional: true }
+          { dep: 'A', spread: false, optional: true }
         ]);
       });
     });

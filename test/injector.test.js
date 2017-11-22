@@ -149,17 +149,6 @@ describe('Injector', () => {
         injector.resolveModuleProvider(provider);
         expect(injector.get('Value')).to.equal(val);
       });
-
-      it('should recognize spread flag', () => {
-        const config = { config: 'test' };
-        const injector = new Injector();
-        const provider = new ValueProvider('Config', config, true);
-        injector.resolveModuleProvider(provider);
-        expect(injector.container.get('Config').instance).to.deep.equal({
-          spread: true,
-          value: config
-        });
-      });
     });
 
     describe('FactoryProvider', () => {
@@ -328,13 +317,12 @@ describe('Injector', () => {
     it('should spread values when it is marked as spread', () => {
       const val = { val: 'val' };
       const p = new ValueProvider('Test', val, true);
-      p.setInstance({
-        spread: true,
-        value: val
-      });
       const injector = new Injector();
       injector.container.set('Test', p);
-      const deps = injector.resolveDependencies([{ dep: 'Test', optional: false }], new Set());
+      const deps = injector.resolveDependencies(
+        [{ dep: 'Test', spread: true, optional: false }],
+        new Set()
+      );
       expect(deps).to.deep.equal({
         injector,
         val: 'val'
