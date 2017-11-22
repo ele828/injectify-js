@@ -4,7 +4,7 @@ import RcModule from '../../RcModule';
 import {
   Injector,
   Module,
-  Library,
+  AbstractModule,
   ModuleFactory
 } from '../';
 
@@ -486,20 +486,20 @@ describe('Dependency Injection Features', () => {
     Injector.bootstrap(ChildModule);
   });
 
-  it('should support @Library decorator', () => {
+  it('should support @AbstractModule decorator', () => {
     const testConfig = { test: 'test' };
 
-    @Library({
+    @AbstractModule({
       deps: [{ dep: 'Config' }]
     })
-    class TestLibrary {
+    class TestAbstractModule {
       constructor({ config }) {
         this.config = config;
       }
     }
 
     @Module()
-    class TestModule extends TestLibrary {}
+    class TestModule extends TestAbstractModule {}
 
     @ModuleFactory({
       providers: [
@@ -577,8 +577,8 @@ describe('Dependency Injection Features', () => {
       test() { return true; }
     }
 
-    @Library()
-    class TestLibrary {
+    @AbstractModule()
+    class TestAbstractModule {
       test() { return true; }
     }
 
@@ -588,11 +588,11 @@ describe('Dependency Injection Features', () => {
     }
 
     const tm = new TestModule();
-    const tl = new TestLibrary();
+    const tl = new TestAbstractModule();
     const tmf = new TestModuleFactory();
 
     expect(tm).to.be.instanceOf(TestModule);
-    expect(tl).to.be.instanceOf(TestLibrary);
+    expect(tl).to.be.instanceOf(TestAbstractModule);
     expect(tmf).to.be.instanceOf(TestModuleFactory);
 
     expect(tm.test()).to.be.true();
