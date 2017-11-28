@@ -53,5 +53,4 @@ export class ValueProvider extends Provider {
       spread: this.spread
     });
   }
-
 }
