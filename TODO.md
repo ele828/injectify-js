@@ -25,7 +25,7 @@
 - [X] Check value validation process in @Module and @ModuleFactory
 - [X] Implement loose naming strategy (use class reference as key instead of its name)
 - [X] Write Unit Test
-- [ ] Write markdown documents
+- [X] Write markdown documents
 - [ ] Integrate with commons project
       - [X] Add module dependency definitions
       - [X] Add basic module factory

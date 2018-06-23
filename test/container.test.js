@@ -45,10 +45,10 @@ describe('Container', () => {
       expect(container.get('B')).to.be.equal(B);
     });
 
-    it('should throw an error when no record is found', () => {
+    it('should return null when no record is found', () => {
       const container = new Container();
-      const throws = () => container.get('A');
-      expect(throws).to.throw('Cannot find provider [A] in Container');
+      const instance = container.get('A');
+      expect(instance).to.be.equal(null);
     });
   });
 });

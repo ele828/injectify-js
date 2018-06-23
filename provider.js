@@ -35,22 +35,17 @@ export class ExistingProvider extends Provider {
 }
 
 export class FactoryProvider extends Provider {
-  constructor(token, func, deps, spread, isPrivate) {
+  constructor(token, func, deps, isPrivate) {
     super(token, isPrivate);
     this.func = func;
     this.deps = deps || [];
-    this.spread = spread || false;
   }
 }
 
 export class ValueProvider extends Provider {
-  constructor(token, value, spread, isPrivate) {
+  constructor(token, value, isPrivate) {
     super(token, isPrivate);
     this.value = value;
-    this.spread = spread || false;
-    this.setInstance({
-      value: this.value,
-      spread: this.spread
-    });
+    this.setInstance(value);
   }
 }

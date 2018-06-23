@@ -4,7 +4,7 @@ import RcModule from '../../RcModule';
 import {
   Injector,
   Module,
-  Library,
+  AbstractModule,
   ModuleFactory
 } from '../';
 
@@ -15,14 +15,14 @@ describe('Dependency Injection Features', () => {
     Injector.reset();
   });
 
-  it('should support spreadValues in ModuleFactory', () => {
+  it('should support spread flag', () => {
     @Module()
     class MessageStore {}
     @Module({
       deps: [
         'MessageStore',
-        'ExistingOptions',
-        { dep: 'RecentMessageOptions', optional: true }
+        { dep: 'ExistingOptions', spread: true },
+        { dep: 'RecentMessageOptions', spread: true, optional: true }
       ]
     })
     class RecentMessage {
@@ -41,7 +41,7 @@ describe('Dependency Injection Features', () => {
       providers: [
         { provide: 'MessageStore', useClass: MessageStore },
         { provide: 'RecentMessage', useClass: RecentMessage },
-        { provide: 'RecentMessageOptions', useValue: { enabled: true }, spread: true },
+        { provide: 'RecentMessageOptions', useValue: { enabled: true } },
         { provide: 'ExistingOptions', useExisting: 'RecentMessageOptions' }
       ]
     })
@@ -60,7 +60,7 @@ describe('Dependency Injection Features', () => {
 
   it('should support spread flag in FactoryProvider', () => {
     @Module({
-      deps: ['Config']
+      deps: [{ dep: 'Config', spread: true }]
     })
     class Test {
       constructor({ value, config }) {
@@ -71,8 +71,10 @@ describe('Dependency Injection Features', () => {
 
     @ModuleFactory({
       providers: [
-        { provide: 'BasicConfig', useValue: { value: 'value' }, spread: true },
-        { provide: 'DefaultConfig', useFactory: ({ value }) => ({ value }), deps: ['BasicConfig'] }
+        { provide: 'BasicConfig', useValue: { value: 'value' } },
+        { provide: 'DefaultConfig',
+          useFactory: ({ basicConfig }) => ({ ...basicConfig }),
+          deps: ['BasicConfig'] }
       ]
     })
     class BaseClass {}
@@ -83,7 +85,6 @@ describe('Dependency Injection Features', () => {
         { provide: 'Config',
           useFactory: ({ defaultConfig }) => ({ value: defaultConfig.value, config: 'config' }),
           deps: ['DefaultConfig'],
-          spread: true
         }
       ]
     })
@@ -153,7 +154,7 @@ describe('Dependency Injection Features', () => {
 
     @ModuleFactory({
       providers: [
-        { provide: 'Options', useValue: { key: 'key' }, spread: true, merge: true },
+        { provide: 'Options', useValue: { key: 'key' }, merge: true },
         { provide: 'ExistingOptions', useExisting: 'Options' }
       ]
     })
@@ -485,20 +486,20 @@ describe('Dependency Injection Features', () => {
     Injector.bootstrap(ChildModule);
   });
 
-  it('should support @Library decorator', () => {
+  it('should support @AbstractModule decorator', () => {
     const testConfig = { test: 'test' };
 
-    @Library({
-      deps: [{ dep: 'Config', optional: true }]
+    @AbstractModule({
+      deps: [{ dep: 'Config' }]
     })
-    class TestLibrary {
+    class TestAbstractModule {
       constructor({ config }) {
         this.config = config;
       }
     }
 
     @Module()
-    class TestModule extends TestLibrary {}
+    class TestModule extends TestAbstractModule {}
 
     @ModuleFactory({
       providers: [
@@ -519,7 +520,8 @@ describe('Dependency Injection Features', () => {
     })
     class TestModule {
       constructor({
-        utils
+        utils,
+        value,
       }) {
         this.utils = utils;
       }
@@ -533,15 +535,18 @@ describe('Dependency Injection Features', () => {
     }
 
     @ModuleFactory({
-      providers: [{
-        provide: 'Strings', useClass: Strings
-      }]
+      providers: [
+        { provide: 'Strings', useClass: Strings },
+        { provide: 'TestExisting', useExisting: 'Value' }
+      ]
     })
     class Util {
       constructor({
-        strings
+        strings,
+        testExisting,
       }) {
         this.strings = strings;
+        this.testExisting = testExisting;
       }
     }
 
@@ -549,7 +554,8 @@ describe('Dependency Injection Features', () => {
       providers: [
         // Utils should be reverse resolved by modules
         { provide: 'TestModule', useClass: TestModule },
-        { provide: 'Utils', useClass: Util, private: true }
+        { provide: 'Utils', useClass: Util, private: true },
+        { provide: 'Value', useValue: 'Test' },
       ]
     })
     class Root {
@@ -562,6 +568,7 @@ describe('Dependency Injection Features', () => {
 
     const root = Injector.bootstrap(Root);
     expect(root.testModule.utils.strings).to.be.an('object');
+    console.log(root.testModule.utils.testExisting);
   });
 
   it('should make sure module will not be affected by decorator', () => {
@@ -570,8 +577,8 @@ describe('Dependency Injection Features', () => {
       test() { return true; }
     }
 
-    @Library()
-    class TestLibrary {
+    @AbstractModule()
+    class TestAbstractModule {
       test() { return true; }
     }
 
@@ -581,11 +588,11 @@ describe('Dependency Injection Features', () => {
     }
 
     const tm = new TestModule();
-    const tl = new TestLibrary();
+    const tl = new TestAbstractModule();
     const tmf = new TestModuleFactory();
 
     expect(tm).to.be.instanceOf(TestModule);
-    expect(tl).to.be.instanceOf(TestLibrary);
+    expect(tl).to.be.instanceOf(TestAbstractModule);
     expect(tmf).to.be.instanceOf(TestModuleFactory);
 
     expect(tm.test()).to.be.true();

@@ -3,14 +3,14 @@ import dirtyChai from 'dirty-chai';
 import {
   Injector,
   Module,
-  Library,
+  AbstractModule,
   ModuleFactory
 } from '../';
 import Registry from '../registry/registry';
 
 chai.use(dirtyChai);
 
-describe('Module and Library decorator', () => {
+describe('Module and AbstractModule decorator', () => {
   beforeEach(() => {
     Injector.reset();
   });
@@ -18,7 +18,7 @@ describe('Module and Library decorator', () => {
   it('metadata should be registered', () => {
     @Module()
     class FakeModule {}
-    @Library()
+    @AbstractModule()
     class FakeLib {}
     expect(Registry.moduleRegistry.has(FakeModule)).to.be.true();
     expect(Registry.moduleRegistry.has(FakeLib)).to.be.true();
@@ -28,7 +28,7 @@ describe('Module and Library decorator', () => {
     const metadata = { deps: [] };
     @Module(metadata)
     class FakeModule {}
-    @Library(metadata)
+    @AbstractModule(metadata)
     class FakeLib {}
     expect(Registry.moduleRegistry.get(FakeModule)).to.equal(metadata);
     expect(Registry.moduleRegistry.get(FakeLib)).to.equal(metadata);
@@ -37,7 +37,7 @@ describe('Module and Library decorator', () => {
   it('Support empty module metadata', () => {
     @Module()
     class FakeModule {}
-    @Library()
+    @AbstractModule()
     class FakeLib {}
     expect(Registry.moduleRegistry.get(FakeModule)).to.equal(null);
     expect(Registry.moduleRegistry.get(FakeLib)).to.equal(null);
@@ -50,7 +50,7 @@ describe('Module and Library decorator', () => {
       class FakeModule {}
     }
     function library() {
-      @Library([])
+      @AbstractModule([])
       class FakeLib {}
     }
     /* eslint-enable */

@@ -47,24 +47,6 @@ describe('Injector', () => {
         expect(injector.get('Exist')).to.be.an.instanceof(Provider);
       });
 
-      it('shold throw when use existing parent ModuleFactory provider', () => {
-        class Provider {}
-        Registry.registerModule(Provider);
-        const parentInjector = new Injector();
-        const injector = new Injector();
-        injector.setParent(parentInjector);
-        parentInjector.universalProviders.set(
-          'Provider',
-          new ClassProvider('Provider', Provider)
-        );
-        injector.universalProviders.set(
-          'Exist',
-          new ExistingProvider('Exist', 'Provider')
-        );
-        const func = () => injector.resolveModuleProvider(injector.universalProviders.get('Exist'));
-        expect(func).to.throw();
-      });
-
       it('should support ValueProvider', () => {
         const val = { val: 'val' };
         const injector = new Injector();
@@ -109,13 +91,11 @@ describe('Injector', () => {
           'Provider',
           new ClassProvider('Provider', Provider)
         );
-        injector.resolveModuleProvider(parentInjector.universalProviders.get('Provider'));
-        expect(injector.container.localHas('Provider')).to.be.true();
+        const retval = injector.resolveDependency('Provider');
+        expect(retval).to.not.be.null();
         expect(parentInjector.container.localHas('Provider')).to.be.true();
-        expect(
+        expect(retval).to.equal(
           parentInjector.container.localGet('Provider')
-        ).to.equal(
-          injector.container.localGet('Provider')
         );
       });
     });
@@ -168,17 +148,6 @@ describe('Injector', () => {
         const provider = new ValueProvider('Value', val);
         injector.resolveModuleProvider(provider);
         expect(injector.get('Value')).to.equal(val);
-      });
-
-      it('should recognize spread flag', () => {
-        const config = { config: 'test' };
-        const injector = new Injector();
-        const provider = new ValueProvider('Config', config, true);
-        injector.resolveModuleProvider(provider);
-        expect(injector.container.get('Config').instance).to.deep.equal({
-          spread: true,
-          value: config
-        });
       });
     });
 
@@ -348,13 +317,12 @@ describe('Injector', () => {
     it('should spread values when it is marked as spread', () => {
       const val = { val: 'val' };
       const p = new ValueProvider('Test', val, true);
-      p.setInstance({
-        spread: true,
-        value: val
-      });
       const injector = new Injector();
       injector.container.set('Test', p);
-      const deps = injector.resolveDependencies([{ dep: 'Test', optional: false }], new Set());
+      const deps = injector.resolveDependencies(
+        [{ dep: 'Test', spread: true, optional: false }],
+        new Set()
+      );
       expect(deps).to.deep.equal({
         injector,
         val: 'val'
@@ -409,17 +377,6 @@ describe('Injector', () => {
   });
 
   describe('#_bootstrap', () => {
-    it('should return provider is it has already been resolved', () => {
-      class RootClass {}
-      const instance = new RootClass();
-      const provider = new ClassProvider(RootClass.name, RootClass);
-      provider.setInstance(instance);
-      const injector = new Injector();
-      injector.container.set(RootClass.name, provider);
-      const retval = injector._bootstrap(RootClass);
-      expect(retval).to.equal(instance);
-    });
-
     describe('provider categorize', () => {
       it('should recognize Value Provider', () => {
         class Test {}
