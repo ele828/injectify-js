@@ -220,7 +220,7 @@ export class Injector {
 
     // Iterate through all provider metadata
     // Discard providers in parent class overwritten by children
-    const universalProviders = this.universalProviders;
+    const { universalProviders } = this;
     for (const provider of providersMetadata) {
       if (isValueProvider(provider)) {
         universalProviders.set(
@@ -249,7 +249,7 @@ export class Injector {
     }
 
     // Resolve dependencies and create instances of provides
-    const container = this.container;
+    const { container } = this;
     for (const provider of this.universalProviders.values()) {
       if (!container.has(provider.provide)) {
         // Provider is a module factory

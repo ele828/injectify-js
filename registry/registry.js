@@ -1,7 +1,7 @@
 import ModuleRegistry from './module_registry';
 import ProviderRegistry from './provider_registry';
 import { getParentClass, assert } from '../utils/utils';
-import { isEmpty, isFunction, isArray, isObject } from '../utils/is_type';
+import { isFunction, isArray, isObject } from '../utils/is_type';
 
 export default class Registry {
   static moduleRegistry = new ModuleRegistry();
@@ -74,7 +74,7 @@ export default class Registry {
     const hasProviders = moduleProviderMetadata && isArray(moduleProviderMetadata.providers);
     const providerMetadata = this.mergeProviders(
       hasProviders ? moduleProviderMetadata.providers : [],
-      !isEmpty(parentClass.name) ? this.resolveInheritedModuleFactory(parentClass) : []
+      this.resolveInheritedModuleFactory(parentClass)
     );
     this.providerRegistry.resolve(
       currentClass,
@@ -101,7 +101,7 @@ export default class Registry {
     const hasDeps = moduleMetadata && isArray(moduleMetadata.deps);
     const deps = this.mergeDependencies(
       hasDeps ? moduleMetadata.deps : [],
-      !isEmpty(parentClass.name) ? this.resolveInheritedDependencies(parentClass) : []
+      this.resolveInheritedDependencies(parentClass)
     );
     // Update parent class metadata
     this.moduleRegistry.resolve(
