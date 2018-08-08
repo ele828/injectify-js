@@ -1,5 +1,5 @@
 # Injectify-js
-An lightweight and easy-to-use dependency injection library for JavaScript inspired by Angular that works in both browser and Node.js.
+A lightweight and easy-to-use dependency injection library for JavaScript inspired by Angular that works in both browser and Node.js.
 
 ## Installation
 ```
