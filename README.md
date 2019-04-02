@@ -292,3 +292,4 @@ The class provider can be registered in a simpler way, but make sure that the `m
   ]
 })
 ```
+
